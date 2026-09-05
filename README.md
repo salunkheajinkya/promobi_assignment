@@ -46,7 +46,7 @@ API will be available at `http://localhost:3000`.
 
 ### Create a Course with Tutors
 
-`POST /api/v1/courses`
+`POST /api/courses`
 
 **Request body:**
 ```json
@@ -77,7 +77,7 @@ API will be available at `http://localhost:3000`.
 
 ### List All Courses with Tutors
 
-`GET /api/v1/courses`
+`GET /api/courses`
 
 **Response:** `200 OK`
 ```json
