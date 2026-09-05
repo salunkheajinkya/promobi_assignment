@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :course do
-    name { "MyString" }
-    duration { "MyString" }
+    sequence(:name) { |n| "Course #{n}" }
+    duration { "3 months" }
   end
 end
