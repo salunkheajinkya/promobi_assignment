@@ -7,10 +7,12 @@ A Rails API-only application demonstrating a **Course → Tutors** relationship,
 - A **Course** can have many **Tutors**.
 - A **Tutor** belongs to exactly one **Course**.
 
-This project exposes two REST endpoints:
+This project exposes the following REST endpoints:
 
 1. `POST /api/courses` — Create a course along with its tutors in a single request.
 2. `GET /api/courses` — List all courses along with their associated tutors.
+3. `GET /api/courses/:id` — Get a single course along with its tutors.
+4. `POST /api/courses/:course_id/tutors` — Add a new tutor to an existing course.
 
 ## Tech Stack
 
@@ -55,14 +57,18 @@ API will be available at `http://localhost:3000`.
 | Field   | Type   | Constraints                                   |
 |---------|--------|------------------------------------------------|
 | `name`  | string | required, unique within the same course        |
-| `email` | string | required, globally unique, valid email format, DB `NOT NULL` + unique index |
+| `email` | string | required, **globally unique** (a tutor can only teach one course), valid email format, DB `NOT NULL` + unique index |
 | `course`| belongs_to | required (`course_id` FK, `NOT NULL`)     |
+
+**Note:** Since a tutor's email must be globally unique, the same person (identified by email) cannot be added as a tutor to more than one course. However, the same tutor **name** can be reused across different courses (e.g. two different people named "Rushi" teaching different courses, each with their own unique email).
 
 ## API Endpoints
 
-### Create a Course with Tutors
+### 1. Create a Course with Tutors
 
 `POST /api/courses`
+
+Creates a brand-new course. To add tutors to an **already-existing** course, use the "Add a Tutor" endpoint instead (see below) — this endpoint will reject the request if a course with the same name already exists.
 
 **Request body:**
 ```json
@@ -101,7 +107,7 @@ API will be available at `http://localhost:3000`.
 }
 ```
 
-### List All Courses with Tutors
+### 2. List All Courses with Tutors
 
 `GET /api/courses`
 
@@ -121,6 +127,67 @@ API will be available at `http://localhost:3000`.
 
 Returns `[]` if no courses exist.
 
+### 3. Get a Single Course by ID
+
+`GET /api/courses/:id`
+
+**Response:** `200 OK`
+```json
+{
+  "id": 1,
+  "name": "Ruby on Rails",
+  "duration": "3 months",
+  "tutors": [
+    { "id": 1, "name": "Alice", "email": "alice@example.com" }
+  ]
+}
+```
+
+**Error Response (course not found):** `404 Not Found`
+```json
+{
+  "error": "Course not found"
+}
+```
+
+### 4. Add a Tutor to an Existing Course
+
+`POST /api/courses/:course_id/tutors`
+
+**Request body:**
+```json
+{
+  "tutor": {
+    "name": "Mayur",
+    "email": "mayur@example.com"
+  }
+}
+```
+
+**Success Response:** `201 Created`
+```json
+{
+  "id": 3,
+  "name": "Mayur",
+  "email": "mayur@example.com",
+  "course_id": 1
+}
+```
+
+**Error Response (duplicate name in same course, duplicate email globally, or invalid data):** `422 Unprocessable Content`
+```json
+{
+  "errors": ["already teaches this course"]
+}
+```
+
+**Error Response (course not found):** `404 Not Found`
+```json
+{
+  "error": "Course not found"
+}
+```
+
 ## Running Tests
 
 ```bash
@@ -129,6 +196,4 @@ bundle exec rspec
 
 Includes:
 - **Model specs** — validations, associations, custom business rules (Course/Tutor)
-- **Request specs** — full API behavior including success cases, validation failures, and edge cases (duplicate names/emails, missing fields, invalid duration format, courses without tutors)
-
-Current status: **38 examples, 0 failures**
+- **Request specs** — full API behavior including success cases, validation failures, and edge cases (duplicate names/emails, missing fields, invalid duration format, courses without tutors, adding tutors to existing courses)
