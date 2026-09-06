@@ -188,4 +188,38 @@ RSpec.describe 'Courses API', type: :request do
       end
     end
   end
+
+  describe 'GET /api/courses/:id' do
+    context 'when the course exists' do
+      let!(:course) { create(:course, name: 'Ruby on Rails', tutors_count: 2) }
+
+      it 'returns the course with its tutors' do
+        get "/api/courses/#{course.id}", as: :json
+
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+        expect(json['id']).to eq(course.id)
+        expect(json['name']).to eq('Ruby on Rails')
+        expect(json['tutors'].size).to eq(2)
+        expect(json).to include('id', 'name', 'duration', 'tutors')
+      end
+
+      it 'includes correct tutor attributes' do
+        get "/api/courses/#{course.id}", as: :json
+        json = JSON.parse(response.body)
+        tutor = json['tutors'].first
+        expect(tutor).to include('id', 'name', 'email')
+      end
+    end
+
+    context 'when the course does not exist' do
+      it 'returns 404 not found' do
+        get '/api/courses/999999', as: :json
+
+        expect(response).to have_http_status(:not_found)
+        json = JSON.parse(response.body)
+        expect(json['error']).to eq('Course not found')
+      end
+    end
+  end
 end
