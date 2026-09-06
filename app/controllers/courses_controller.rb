@@ -11,7 +11,7 @@ class CoursesController < ApplicationController
     if @course.save
       render :create, status: :created
     else
-      render json: { errors: @course.errors.full_messages }, status: :unprocessable_entity
+      render json: { errors: @course.errors.full_messages }, status: :unprocessable_content
     end
   end
 
