@@ -33,7 +33,7 @@ RSpec.describe 'Courses API', type: :request do
         invalid_params = { course: { duration: '3 months', tutors_attributes: [{ name: 'A', email: 'a@x.com' }] } }
         post '/api/courses', params: invalid_params, as: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['errors']).to include("Name can't be blank")
       end
@@ -42,7 +42,7 @@ RSpec.describe 'Courses API', type: :request do
         invalid_params = { course: { name: 'No Duration Course', tutors_attributes: [{ name: 'A', email: 'a@x.com' }] } }
         post '/api/courses', params: invalid_params, as: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['errors']).to include("Duration can't be blank")
       end
@@ -57,7 +57,7 @@ RSpec.describe 'Courses API', type: :request do
         }
         post '/api/courses', params: invalid_params, as: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['errors']).to include(
           "Duration must be a number followed by day(s)/week(s)/month(s)/year(s), e.g. '3 months'"
@@ -74,7 +74,7 @@ RSpec.describe 'Courses API', type: :request do
           }
         }
         post '/api/courses', params: params, as: :json
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'returns errors when course name already exists' do
@@ -87,7 +87,7 @@ RSpec.describe 'Courses API', type: :request do
           }
         }
         post '/api/courses', params: params, as: :json
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['errors']).to include('Name has already been taken')
       end
@@ -104,7 +104,7 @@ RSpec.describe 'Courses API', type: :request do
           post '/api/courses', params: params, as: :json
         }.not_to change(Course, :count)
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'returns errors when two tutors in the same request share the same name' do
@@ -119,7 +119,7 @@ RSpec.describe 'Courses API', type: :request do
           }
         }
         post '/api/courses', params: params, as: :json
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['errors']).to include('Tutors in the same course must have unique names')
       end
@@ -130,7 +130,7 @@ RSpec.describe 'Courses API', type: :request do
         params = { course: { name: 'Solo Course', duration: '1 month' } }
         post '/api/courses', params: params, as: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json = JSON.parse(response.body)
         expect(json['errors']).to include('Course must have at least one tutor')
       end

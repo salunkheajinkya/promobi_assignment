@@ -8,6 +8,8 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   # root "posts#index"
   scope :api do
-    resources :courses, only: [:index, :create], controller: 'courses'
+    resources :courses, only: [:index, :show, :create], controller: 'courses' do
+      resources :tutors, only: [:create], controller: 'tutors'
+    end
   end
 end
