@@ -15,19 +15,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_05_033105) do
   enable_extension "plpgsql"
 
   create_table "courses", force: :cascade do |t|
-    t.string "name"
-    t.string "duration"
+    t.string "name", null: false
+    t.string "duration", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_courses_on_name", unique: true
   end
 
   create_table "tutors", force: :cascade do |t|
-    t.string "name"
-    t.string "email"
+    t.string "name", null: false
+    t.string "email", null: false
     t.bigint "course_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["course_id"], name: "index_tutors_on_course_id"
+    t.index ["email"], name: "index_tutors_on_email", unique: true
   end
 
   add_foreign_key "tutors", "courses"

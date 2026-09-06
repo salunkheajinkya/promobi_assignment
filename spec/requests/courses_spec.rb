@@ -30,7 +30,7 @@ RSpec.describe 'Courses API', type: :request do
 
     context 'with invalid params' do
       it 'returns errors when name is missing' do
-        invalid_params = { course: { duration: '3 months' } }
+        invalid_params = { course: { duration: '3 months', tutors_attributes: [{ name: 'A', email: 'a@x.com' }] } }
         post '/api/courses', params: invalid_params, as: :json
 
         expect(response).to have_http_status(:unprocessable_entity)
@@ -39,12 +39,29 @@ RSpec.describe 'Courses API', type: :request do
       end
 
       it 'returns errors when duration is missing' do
-        invalid_params = { course: { name: 'No Duration Course' } }
+        invalid_params = { course: { name: 'No Duration Course', tutors_attributes: [{ name: 'A', email: 'a@x.com' }] } }
         post '/api/courses', params: invalid_params, as: :json
 
         expect(response).to have_http_status(:unprocessable_entity)
         json = JSON.parse(response.body)
         expect(json['errors']).to include("Duration can't be blank")
+      end
+
+      it 'returns errors when duration format is invalid' do
+        invalid_params = {
+          course: {
+            name: 'Bad Duration Course',
+            duration: 'three months',
+            tutors_attributes: [{ name: 'A', email: 'a@x.com' }]
+          }
+        }
+        post '/api/courses', params: invalid_params, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json['errors']).to include(
+          "Duration must be a number followed by day(s)/week(s)/month(s)/year(s), e.g. '3 months'"
+        )
       end
 
       it 'returns errors when tutor email is duplicated' do
@@ -63,7 +80,11 @@ RSpec.describe 'Courses API', type: :request do
       it 'returns errors when course name already exists' do
         create(:course, name: 'Existing Course')
         params = {
-          course: { name: 'Existing Course', duration: '2 months' }
+          course: {
+            name: 'Existing Course',
+            duration: '2 months',
+            tutors_attributes: [{ name: 'A', email: 'a@x.com' }]
+          }
         }
         post '/api/courses', params: params, as: :json
         expect(response).to have_http_status(:unprocessable_entity)
@@ -85,16 +106,48 @@ RSpec.describe 'Courses API', type: :request do
 
         expect(response).to have_http_status(:unprocessable_entity)
       end
+
+      it 'returns errors when two tutors in the same request share the same name' do
+        params = {
+          course: {
+            name: 'Name Clash Course',
+            duration: '2 months',
+            tutors_attributes: [
+              { name: 'Same Name', email: 'first@x.com' },
+              { name: 'Same Name', email: 'second@x.com' }
+            ]
+          }
+        }
+        post '/api/courses', params: params, as: :json
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json['errors']).to include('Tutors in the same course must have unique names')
+      end
     end
 
-    context 'creating a course without tutors' do
-      it 'still creates the course successfully' do
+    context 'custom validation: must_have_at_least_one_tutor via API' do
+      it 'returns 422 when creating a course without any tutors' do
         params = { course: { name: 'Solo Course', duration: '1 month' } }
+        post '/api/courses', params: params, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json['errors']).to include('Course must have at least one tutor')
+      end
+
+      it 'succeeds when creating a course with at least one tutor' do
+        params = {
+          course: {
+            name: 'Accompanied Course',
+            duration: '1 month',
+            tutors_attributes: [{ name: 'Solo Tutor', email: 'solo@example.com' }]
+          }
+        }
         post '/api/courses', params: params, as: :json
 
         expect(response).to have_http_status(:created)
         json = JSON.parse(response.body)
-        expect(json['tutors']).to eq([])
+        expect(json['tutors'].size).to eq(1)
       end
     end
   end
@@ -102,11 +155,8 @@ RSpec.describe 'Courses API', type: :request do
   describe 'GET /api/courses' do
     context 'when courses exist' do
       before do
-        course1 = create(:course, name: 'Course A')
-        create_list(:tutor, 2, course: course1)
-
-        course2 = create(:course, name: 'Course B')
-        create(:tutor, course: course2)
+        create(:course, name: 'Course A', tutors_count: 2)
+        create(:course, name: 'Course B', tutors_count: 1)
       end
 
       it 'returns all courses with their tutors' do
@@ -116,9 +166,10 @@ RSpec.describe 'Courses API', type: :request do
         json = JSON.parse(response.body)
 
         expect(json.size).to eq(2)
-        expect(json.first['tutors']).to be_an(Array)
-        expect(json.first['tutors'].size).to eq(2)
-        expect(json.first).to include('id', 'name', 'duration', 'tutors')
+        course_a = json.find { |c| c['name'] == 'Course A' }
+        expect(course_a['tutors']).to be_an(Array)
+        expect(course_a['tutors'].size).to eq(2)
+        expect(course_a).to include('id', 'name', 'duration', 'tutors')
       end
 
       it 'includes correct tutor attributes' do
